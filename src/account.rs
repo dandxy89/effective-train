@@ -125,7 +125,7 @@ impl Transact for ClientState {
         self.account_ready(tx.client_id())?;
 
         match tx.amount() {
-            Some(amount) if self.available > Decimal::ZERO && self.available >= amount => {
+            Some(amount) if self.available >= amount => {
                 self.available = self.available.saturating_sub(amount);
                 Ok(())
             }

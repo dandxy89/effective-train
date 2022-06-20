@@ -10,7 +10,7 @@ use anyhow::Context;
 use tokio::sync::mpsc;
 
 use crate::{
-    io_ops::{async_read_csv, display_results, fan_out_csv_events},
+    io_ops::{async_read_csv, display_results, partition_csv_events},
     ledger::event_handler,
 };
 
@@ -47,7 +47,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Read each line of CSV and push parsed records to Event Router
     let reader = async_read_csv(&file_path).await?;
-    fan_out_csv_events(reader, event_senders, num).await?;
+    partition_csv_events(reader, event_senders, num).await?;
 
     let mut results = BTreeMap::new();
     for event_handler in workers {

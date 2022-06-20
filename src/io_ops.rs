@@ -16,7 +16,7 @@ pub async fn async_read_csv(file_path: &str) -> anyhow::Result<AsyncReader<File>
         .create_reader(file))
 }
 
-pub async fn fan_out_csv_events(
+pub async fn partition_csv_events(
     mut reader: AsyncReader<File>,
     event_senders: Vec<UnboundedSender<Transaction>>,
     num: usize,
