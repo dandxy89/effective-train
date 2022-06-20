@@ -2,7 +2,7 @@
 
 clean:
 	rm -rf accounts.csv
-	rm -rf dealer.log
+	rm -rf transaction_processor.log
 
 test:
 	cargo test
