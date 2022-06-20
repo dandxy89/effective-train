@@ -4,14 +4,23 @@
 #![deny(clippy::all)]
 #![deny(clippy::pedantic)]
 
+use std::collections::BTreeMap;
+
 use anyhow::Context;
+use tokio::sync::mpsc;
+
+use crate::{
+    io_ops::{async_read_csv, display_results, fan_out_csv_events},
+    ledger::event_handler,
+};
 
 pub(crate) mod account;
 pub(crate) mod data;
 pub(crate) mod io_ops;
 pub(crate) mod ledger;
 
-fn main() -> anyhow::Result<()> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     let file_appender = tracing_appender::rolling::never("", "transaction_processor.log");
     tracing_subscriber::fmt()
         .with_ansi(false)
@@ -25,7 +34,26 @@ fn main() -> anyhow::Result<()> {
         .next()
         .context(format!("Usage: {bin_name} <transactions.csv>"))?;
 
-    println!("BinName `{bin_name}` and Path `{file_path}`");
+    // count logical cores this process could try to use
+    let num = num_cpus::get();
 
-    Ok(())
+    // Instantiate workers and senders
+    let (mut event_senders, mut workers) = (Vec::with_capacity(num), Vec::with_capacity(num));
+    for _ in 0..num {
+        let (client_sender, client_receiver) = mpsc::unbounded_channel();
+        event_senders.push(client_sender);
+        workers.push(tokio::spawn(event_handler(client_receiver)));
+    }
+
+    // Read each line of CSV and push parsed records to Event Router
+    let reader = async_read_csv(&file_path).await?;
+    fan_out_csv_events(reader, event_senders, num).await?;
+
+    let mut results = BTreeMap::new();
+    for event_handler in workers {
+        let client_results = event_handler.await?;
+        results.extend(client_results);
+    }
+
+    display_results(results).await
 }
