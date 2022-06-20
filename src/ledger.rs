@@ -26,7 +26,6 @@ pub async fn event_handler(mut rx: UnboundedReceiver<Transaction>) -> BTreeMap<u
     while let Some(mut tx) = rx.recv().await {
         ledger
             .process_transaction(&mut tx)
-            .and_then(|_| ledger.record_tx(&tx))
             .map_err(|e| error!("Processing transaction error `{}`", e))
             .ok();
     }
@@ -61,16 +60,10 @@ impl Ledger {
         match (tx.tx_type(), self.approved_tx.get_mut(&tx.tx_id())) {
             (Deposit, _) => state.deposit(tx).and_then(|_| self.record_tx(tx)),
             (Withdrawal, _) => state.withdraw(tx).and_then(|_| self.record_tx(tx)),
-            (Dispute, Some(disputed_tx)) => state.dispute(tx, disputed_tx).map(|_| {
-                disputed_tx.in_dispute = true;
-                ()
-            }),
-            (Resolve, Some(disputed_tx)) => state.resolve(tx, disputed_tx).map(|_| {
-                disputed_tx.in_dispute = false;
-                ()
-            }),
+            (Dispute, Some(disputed_tx)) => state.dispute(tx, disputed_tx),
+            (Resolve, Some(disputed_tx)) => state.resolve(tx, disputed_tx),
             (Chargeback, Some(chargeback_tx)) => state.chargeback(tx, chargeback_tx),
-            _ => bail!("Unmatched transaction `{}`", tx.tx_id()),
+            _ => bail!("Unmatched transaction `{:?}`", tx),
         }
     }
 }
@@ -122,13 +115,10 @@ mod test {
 
         test_ledger.process_transaction(&mut tx).unwrap();
         assert_eq!(test_ledger.approved_tx.len(), 2);
-        dbg!(&test_ledger.approved_tx);
         let disputed_tx = test_ledger.approved_tx.get(&2).unwrap();
-        dbg!(&disputed_tx);
         assert!(disputed_tx.in_dispute());
 
         let disputed_tx = test_ledger.approved_tx.get(&2).unwrap();
-        dbg!(&disputed_tx);
         assert!(disputed_tx.in_dispute());
 
         let mut resolve_tx = Transaction {
@@ -140,7 +130,6 @@ mod test {
         };
         test_ledger.process_transaction(&mut resolve_tx).unwrap();
         let disputed_tx = test_ledger.approved_tx.get(&2).unwrap();
-        dbg!(&disputed_tx);
         assert!(!disputed_tx.in_dispute());
     }
 }
