@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
 
 use anyhow::{bail, Ok, Result};
+use tokio::sync::mpsc::UnboundedReceiver;
+use tracing::error;
 
 use crate::{
     account::ClientState,
@@ -16,6 +18,20 @@ pub trait Transact {
     fn dispute(&mut self, tx: &Transaction, disputed_tx: &mut Transaction) -> Result<()>;
     fn resolve(&mut self, tx: &Transaction, disputed_tx: &mut Transaction) -> Result<()>;
     fn withdraw(&mut self, tx: &Transaction) -> Result<()>;
+}
+
+pub async fn event_handler(mut rx: UnboundedReceiver<Transaction>) -> BTreeMap<u16, ClientState> {
+    let mut ledger = Ledger::new();
+
+    while let Some(mut tx) = rx.recv().await {
+        ledger
+            .process_transaction(&mut tx)
+            .and_then(|_| ledger.record_tx(&tx))
+            .map_err(|e| error!("Processing transaction error `{}`", e))
+            .ok();
+    }
+
+    ledger.accounts
 }
 
 pub struct Ledger {
