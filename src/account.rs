@@ -36,9 +36,7 @@ impl ClientState {
     }
 
     pub fn total(&self) -> Decimal {
-        self.available
-            .checked_add(self.held)
-            .unwrap_or(Decimal::ZERO)
+        self.available.saturating_add(self.held)
     }
 
     fn account_ready(&self, client_id: u16) -> Result<()> {
