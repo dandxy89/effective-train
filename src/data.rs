@@ -26,7 +26,6 @@ pub struct Transaction {
     pub in_dispute: bool,
 }
 
-#[allow(dead_code)]
 impl Transaction {
     pub fn tx_id(&self) -> u32 {
         self.tx_id
@@ -48,7 +47,7 @@ impl Transaction {
         self.in_dispute = true;
     }
 
-    pub fn is_disputed(&self) -> bool {
+    pub fn in_dispute(&self) -> bool {
         self.in_dispute
     }
 

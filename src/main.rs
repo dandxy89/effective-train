@@ -4,6 +4,7 @@
 #![deny(clippy::all)]
 #![deny(clippy::pedantic)]
 
+pub(crate) mod account;
 pub(crate) mod data;
 pub(crate) mod ledger;
 
