@@ -1,4 +1,5 @@
-use ahash::AHashMap;
+use std::collections::HashMap;
+
 use csv_async::{AsyncReader, Trim};
 use futures::stream::StreamExt;
 use rust_decimal::{Decimal, RoundingStrategy};
@@ -41,7 +42,7 @@ fn round_decimal(v: Decimal) -> String {
 #[allow(clippy::implicit_hasher)]
 /// # Errors
 /// Can fail to write to `stdout`
-pub async fn display_results(results: AHashMap<u16, ClientState>) -> anyhow::Result<()> {
+pub async fn display_results(results: HashMap<u16, ClientState>) -> anyhow::Result<()> {
     let mut writer = csv_async::AsyncWriter::from_writer(tokio::io::stdout());
     writer
         .write_record(&["client", "available", "held", "total", "locked"])

@@ -4,7 +4,8 @@
 #![deny(clippy::all)]
 #![deny(clippy::pedantic)]
 
-use ahash::AHashMap;
+use std::collections::HashMap;
+
 use anyhow::Context;
 use tokio::sync::mpsc;
 
@@ -21,11 +22,11 @@ pub(crate) mod ledger;
 // https://docs.rs/tokio/latest/tokio/attr.main.html
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
-    // let file_appender = tracing_appender::rolling::never("", "transaction_processor.log");
-    // tracing_subscriber::fmt()
-    //     .with_ansi(false)
-    //     .with_writer(file_appender)
-    //     .init();
+    let file_appender = tracing_appender::rolling::never("", "transaction_processor.log");
+    tracing_subscriber::fmt()
+        .with_ansi(false)
+        .with_writer(file_appender)
+        .init();
 
     // Parse CLI Argument
     let mut args = std::env::args();
@@ -49,7 +50,7 @@ async fn main() -> anyhow::Result<()> {
     let reader = async_read_csv(&file_path).await?;
     partition_csv_events(reader, event_senders, num).await?;
 
-    let mut results = AHashMap::new();
+    let mut results = HashMap::new();
     for event_handler in workers {
         let client_results = event_handler.await?;
         results.extend(client_results);

@@ -1,4 +1,5 @@
-use ahash::AHashMap;
+use std::collections::HashMap;
+
 use anyhow::{bail, Ok, Result};
 use tokio::sync::mpsc::UnboundedReceiver;
 use tracing::error;
@@ -19,7 +20,7 @@ pub trait Transact {
     fn withdraw(&mut self, tx: &Transaction) -> Result<()>;
 }
 
-pub async fn event_handler(mut rx: UnboundedReceiver<Transaction>) -> AHashMap<u16, ClientState> {
+pub async fn event_handler(mut rx: UnboundedReceiver<Transaction>) -> HashMap<u16, ClientState> {
     let mut ledger = Ledger::new();
 
     while let Some(mut tx) = rx.recv().await {
@@ -33,15 +34,15 @@ pub async fn event_handler(mut rx: UnboundedReceiver<Transaction>) -> AHashMap<u
 }
 
 pub struct Ledger {
-    accounts: AHashMap<u16, ClientState>,
-    approved_tx: AHashMap<u32, Transaction>,
+    accounts: HashMap<u16, ClientState>,
+    approved_tx: HashMap<u32, Transaction>,
 }
 
 impl Ledger {
     pub fn new() -> Self {
         Self {
-            accounts: AHashMap::new(),
-            approved_tx: AHashMap::new(),
+            accounts: HashMap::new(),
+            approved_tx: HashMap::new(),
         }
     }
 
